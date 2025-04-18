@@ -1,0 +1,12 @@
+{
+  "extends": "@microblink/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declarationMap": false,
+    "rootDir": "src",
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "types": ["vite/client"]
+  },
+  "include": ["src"]
+}

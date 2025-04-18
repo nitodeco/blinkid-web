@@ -1,0 +1,96 @@
+{
+  "name": "@microblink/blinkid-ux-manager",
+  "description": "",
+  "version": "7.0.0",
+  "author": "Microblink",
+  "scripts": {
+    "build": "concurrently pnpm:build:js pnpm:build:types",
+    "build:dev": "concurrently pnpm:build:js-dev pnpm:build:types",
+    "build:js": "vite build",
+    "build:js-dev": "vite build --mode development",
+    "build:publish": "pnpm build && pnpm type-rollup",
+    "build:types": "tsc",
+    "clean": "rimraf .turbo types dist publish public/resources/* *.tgz",
+    "lint": "concurrently pnpm:lint:types pnpm:lint:eslint",
+    "lint:eslint": "eslint ./src --max-warnings 0",
+    "lint:types": "tsc --emitDeclarationOnly false --noEmit",
+    "pack-check": "pnpm pack | tail -n1 | xargs attw --profile esm-only && publint publish",
+    "prepack": "pnpm prepare-publish",
+    "prepare-publish": "tsx scripts/prepare-publish.mts",
+    "publish-test": "pnpm build:publish && pnpm pack-check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-rollup": "api-extractor run --local",
+    "watch": "concurrently pnpm:watch:js pnpm:watch:types",
+    "watch:js": "pnpm run build:js --watch --mode development",
+    "watch:types": "pnpm run build:types --watch"
+  },
+  "type": "module",
+  "main": "./dist/blinkid-ux-manager.js",
+  "module": "./dist/blinkid-ux-manager.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/blinkid-ux-manager.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "directory": "publish",
+    "linkDirectory": false
+  },
+  "files": [
+    "dist",
+    "types"
+  ],
+  "dependencies": {
+    "@microblink/blinkid-core": "workspace:^",
+    "@microblink/camera-manager": "workspace:^",
+    "@solid-primitives/keyed": "^1.5.0",
+    "clsx": "^2.1.1",
+    "merge-anything": "^6.0.3",
+    "solid-motionone": "^1.0.3",
+    "ts-pattern": "^5.6.2",
+    "type-fest": "^4.35.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.17.4",
+    "@microblink/feedback-stabilizer": "workspace:^",
+    "@microblink/shared-components": "workspace:^",
+    "@microblink/tsconfig": "workspace:*",
+    "@microblink/unocss-config": "workspace:*",
+    "@microblink/utils": "workspace:*",
+    "@microsoft/api-extractor": "^7.52.4",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "@unocss/eslint-config": "^65.5.0",
+    "@unocss/preset-uno": "^65.5.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "10.0.1",
+    "eslint-define-config": "^1.24.1",
+    "eslint-plugin-solid": "0.14.5",
+    "prettier-plugin-classnames": "^0.7.6",
+    "publint": "^0.3.12",
+    "rimraf": "^6.0.1",
+    "sass": "^1.85.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3",
+    "unocss": "^65.5.0",
+    "vite": "^6.2.1",
+    "vite-plugin-css-injected-by-js": "^3.5.2",
+    "vite-plugin-externalize-dependencies": "1.0.1",
+    "vite-plugin-solid": "^2.11.6",
+    "vite-plugin-solid-svg": "0.8.1",
+    "vitest": "3.0.8",
+    "write-package": "^7.1.0",
+    "zx": "^8.5.2"
+  },
+  "peerDependencies": {
+    "@ark-ui/solid": "^5.5.0",
+    "solid-js": "^1.9.5",
+    "solid-zustand": "^1.8.1"
+  },
+  "keywords": [],
+  "license": "ISC"
+}

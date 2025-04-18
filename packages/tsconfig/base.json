@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Default",
+  "compilerOptions": {
+    "target": "es2022",
+    "useDefineForClassFields": true,
+    "module": "preserve",
+    "moduleResolution": "Bundler",
+    // "noEmit": true,
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "strict": true,
+    "allowJs": true,
+    "sourceMap": true,
+    "moduleDetection": "force",
+    // "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    // "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true
+  }
+}

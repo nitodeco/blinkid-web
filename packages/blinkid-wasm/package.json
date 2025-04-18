@@ -1,0 +1,40 @@
+{
+  "name": "@microblink/blinkid-wasm",
+  "private": true,
+  "version": "7.0.0",
+  "scripts": {
+    "build": "tsc",
+    "build:publish": "tsc",
+    "clean": "rimraf .turbo types",
+    "lint": "pnpm lint:types",
+    "lint:types": "tsc --emitDeclarationOnly false --noEmit",
+    "build:dev": "tsc"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "module": "./dist/index.js",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "types"
+  ],
+  "devDependencies": {
+    "@microblink/tsconfig": "workspace:*",
+    "dotenv-cli": "^8.0.0",
+    "prettier": "^3.5.1",
+    "prettier-plugin-jsdoc": "^1.3.2",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "type-fest": "^4.35.0",
+    "typescript": "^5.8.3",
+    "zx": "^8.5.2"
+  },
+  "description": "Wasm runtime"
+}

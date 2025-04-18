@@ -1,0 +1,21 @@
+{
+  "name": "@microblink/shared-components",
+  "private": true,
+  "version": "0.0.0",
+  "exports": {
+    "./SmartEnvironmentProvider": "./src/SmartEnvironmentProvider.tsx",
+    "./Modal": "./src/Modal.tsx",
+    "./AlertModal": "./src/Modal.tsx",
+    "./eventFixer": "./src/eventFixer.ts",
+    "./renderWithOwner": "./src/renderWithOwner.ts"
+  },
+  "devDependencies": {
+    "@ark-ui/solid": "^5.5.0",
+    "@microblink/tsconfig": "workspace:*",
+    "@microblink/unocss-config": "workspace:*",
+    "prettier": "^3.5.1",
+    "prettier-plugin-classnames": "^0.7.6",
+    "solid-js": "^1.9.5",
+    "type-fest": "^4.35.0"
+  }
+}

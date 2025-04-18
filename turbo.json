@@ -1,0 +1,40 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "types/**"],
+      "outputLogs": "new-only"
+    },
+    "build:dev": {
+      "dependsOn": ["^build:dev"],
+      "outputs": ["dist/**", "types/**"]
+    },
+    "build:publish": {
+      "dependsOn": ["^build:publish"],
+      "cache": false
+    },
+    "lint": {
+      "cache": false
+    },
+    "publish-test": {
+      "dependsOn": ["^build:publish"],
+      "cache": false
+    },
+    "test": {},
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false,
+      "outputs": []
+    },
+    "watch": {
+      "dependsOn": ["^build:dev"],
+      "cache": false,
+      "persistent": true,
+      "outputs": []
+    }
+  }
+}
