@@ -11,7 +11,11 @@ import {
 import { Component, Show } from "solid-js";
 import { FPS } from "yy-fps";
 
-const DEBUG_FPS = true;
+/**
+ * This example shows how to use the CameraManager to capture frames from the camera
+ * and display them on a canvas.
+ */
+const PROCESS_FRAMES = true;
 const PORTAL = true;
 
 export const App: Component = () => {
@@ -27,24 +31,9 @@ export const App: Component = () => {
       !PORTAL ? document.getElementById("root")! : undefined,
     );
 
-    // await cameraManager.setResolution("1080p");
+    await cameraManager.startCameraStream();
 
-    // cameraManager.setFacingFilter(["back", undefined]);
-    await cameraManager.startCameraStream({
-      preferredCamera: (cameras) => {
-        const myCamera = cameras.find((camera) =>
-          camera.name.toLowerCase().includes("obs"),
-        );
-
-        if (myCamera) {
-          console.log("📷 Found camera", myCamera);
-        }
-
-        return myCamera;
-      },
-    });
-
-    if (DEBUG_FPS) {
+    if (PROCESS_FRAMES) {
       fps = new FPS({
         FPS: 30,
       });
@@ -70,14 +59,10 @@ export const App: Component = () => {
     }
   };
 
-  // onMount(() => {
-  //   void initialize();
-  // });
-
   return (
     <div>
       <button onClick={() => void initialize()}>Scan</button>
-      <Show when={DEBUG_FPS}>
+      <Show when={PROCESS_FRAMES}>
         <canvas
           ref={canvas}
           style={{

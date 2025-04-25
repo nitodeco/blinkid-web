@@ -15,7 +15,6 @@ import {
 import {
   CameraManager,
   createCameraManagerUi,
-  FrameCaptureCallback,
 } from "@microblink/camera-manager";
 
 import { Component, createSignal, onMount, Show } from "solid-js";
@@ -23,8 +22,9 @@ import { ScoreDisplay } from "./ScoreDisplay";
 
 import { Traverse } from "neotraverse/modern";
 
-const SHOW_DEBUG = import.meta.env.VITE_SHOW_DEBUG === "true";
-const USE_PORTAL = import.meta.env.VITE_USE_PORTAL === "true";
+const SHOW_DEBUG = false;
+const USE_PORTAL = true;
+const SHOW_ONBOARDING = true;
 
 const targetNode = !USE_PORTAL ? document.getElementById("root")! : undefined;
 
@@ -68,10 +68,9 @@ export const App: Component = () => {
     // await cameraManager.setResolution("720p");
 
     // we create the UX manager
-    const blinkIdUxManager = new BlinkIdUxManager(cameraManager, session);
-    // blinkIdUxManager.setTimeoutDuration(500);
+    const uxManager = new BlinkIdUxManager(cameraManager, session);
 
-    setBlinkIdUxManager(blinkIdUxManager);
+    setBlinkIdUxManager(uxManager);
 
     // this creates the UI and attaches it to the DOM
     const cameraUi = await createCameraManagerUi(cameraManager, targetNode);
@@ -82,36 +81,33 @@ export const App: Component = () => {
       setLoadState("not-loaded");
     });
 
-    blinkIdUxManager.addOnResultCallback((result) => {
+    uxManager.addOnResultCallback((result) => {
       setResult(result);
       cameraUi.dismount();
     });
 
-    // const exampleCallback: FrameCaptureCallback = (imageData: ImageData) => {
-    //   // sleep 100ms
-    //   console.log(imageData.width, imageData.height);
-    //   // await new Promise((resolve) => setTimeout(resolve, 150));
-
-    //   return imageData.data.buffer;
-    // };
-
-    // async functions will throttle the frame capture
-    // cameraManager.addFrameCaptureCallback(exampleCallback);
-
+    // We wait until the video starts playing before we create the feedback UI
+    // and start the frame capture. This also allows for the user to retry granting
+    // camera permissions if they are not granted on the first try.
     const unsub = cameraManager.subscribe(
       (s) => s.playbackState,
       (state) => {
         if (state === "playback") {
           // this creates the feedback UI and attaches it to the camera UI
-          createBlinkIdFeedbackUi(blinkIdUxManager, cameraUi, {
-            showOnboardingGuide: true,
+          createBlinkIdFeedbackUi(uxManager, cameraUi, {
+            showOnboardingGuide: SHOW_ONBOARDING,
             // example of localization update
             // localizationStrings: {
             //   scan_the_front_side: "Scan the front side of the ID card",
             // },
           });
 
-          // await cameraManager.startFrameCapture();
+          // if we are not showing the onboarding guide, we start the frame
+          // capture manually otherwise, the user will be prompted to start the
+          // frame capture
+          if (!SHOW_ONBOARDING) {
+            void cameraManager.startFrameCapture();
+          }
 
           setLoadState("ready");
           unsub(); // unsubscribe from the playback state

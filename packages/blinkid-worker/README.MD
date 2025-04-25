@@ -1,7 +1,34 @@
-# BlinkID Web Worker
+# @microblink/blinkid-worker
 
-The `@microblink/blinkid-worker` package handles downloading, initializing and interacting with the BlinkID WebAssembly resources.
+This package provides the Web Worker script for the BlinkID browser SDK. It is used internally by BlinkID to offload intensive document scanning and recognition tasks to a separate thread, improving performance and responsiveness in web applications.
 
-It is not a published package, or a user-consumable package. It's included in the `/resources` directory shipped in `@microblink/blinkid-core`, which needs to be hosted by the user.
+## Overview
 
-It doesn't expose the native methods present on the WebAssembly module, but wraps them in a modern API which can then be consumed by the user via `@microblink/blinkid-core`.
+- Contains the worker code that interacts with the BlinkID WebAssembly module.
+- Used by higher-level packages such as [`@microblink/blinkid-core`](https://www.npmjs.com/package/@microblink/blinkid-core) and [`@microblink/blinkid`](https://www.npmjs.com/package/@microblink/blinkid).
+- Not intended for direct use by end-users.
+
+## Usage
+
+This package is bundled and distributed as part of the BlinkID browser SDK. If you want to use BlinkID in your project, install and use:
+
+- [`@microblink/blinkid`](https://www.npmjs.com/package/@microblink/blinkid)
+- [`@microblink/blinkid-core`](https://www.npmjs.com/package/@microblink/blinkid-core)
+
+## Development
+
+To build the worker locally:
+
+1. Install dependencies in the monorepo root:
+
+   ```sh
+   pnpm install
+   ```
+
+2. Build the package:
+
+   ```sh
+   pnpm build
+   ```
+
+The output files will be available in the `dist/` directory.

@@ -10,3 +10,8 @@ const blinkid = await createBlinkId({
     showMirrorCameraButton: false,
   },
 });
+
+blinkid.addOnResultCallback((result) => {
+  console.log("Result:", result);
+  void blinkid.destroy();
+});
