@@ -1,31 +1,92 @@
-# BlinkID Next
+# @microblink/blinkid
 
-This is an all-in-one package intended for simpler use cases. It includes everything you need to get started with BlinkID:
+The all-in-one BlinkID browser SDK package. It provides a high-level, easy-to-use API for document scanning and recognition in web applications, bundling all required components and resources for a seamless integration experience.
 
-- `@microblink/blinkid-core` - core scanning functionality
-- `@microblink/blinkid-ux-manager` - user experience and feedback
-- `@microblink/camera-manager` - camera handling
+## Overview
+
+- Combines the BlinkID engine, camera management, user experience (UX) management, and all required resources.
+- Handles initialization, licensing, camera selection, scanning, and user feedback UI.
+- Suitable for most use cases—just add your license key and start scanning!
+- Used in production by leading companies for fast and accurate ID document scanning in the browser.
+
+## What's Included
+
+- [`@microblink/blinkid-core`](https://www.npmjs.com/package/@microblink/blinkid-core): Core scanning engine and low-level API.
+- [`@microblink/blinkid-ux-manager`](https://www.npmjs.com/package/@microblink/blinkid-ux-manager): User experience and feedback UI.
+- [`@microblink/camera-manager`](https://www.npmjs.com/package/@microblink/camera-manager): Camera selection and video stream management.
 
 ## Installation
 
-```bash
+Install from npm using your preferred package manager:
+
+```sh
 npm install @microblink/blinkid
+# or
+yarn add @microblink/blinkid
+# or
+pnpm add @microblink/blinkid
 ```
 
 ## Usage
 
-```typescript
-import { createBlinkIdUi } from "@microblink/blinkid";
+A minimal example:
 
-const blinkId = await createBlinkIdUi({
-  licenseKey: "your-license-key",
-  targetNode: document.getElementById("container"),
-});
+```js
+import { createBlinkId } from "@microblink/blinkid";
 
-// Add result callback
-blinkId.addOnResultCallback((result) => {
-  console.log("Scanning result:", result);
+const blinkid = await createBlinkId({
+  licenseKey: import.meta.env.VITE_LICENCE_KEY,
 });
 ```
 
-For more details on setup requirements and advanced usage, check out the documentation at https://github.com/BlinkID/blinkid-web
+For more advanced usage, customization, or integration with your own UI, see the example apps and the documentation for the underlying packages.
+
+## Example Apps
+
+See the [`apps/examples`](../../apps/examples) directory for ready-to-run demos:
+
+- **[blinkid-simple](../../apps/examples/blinkid-simple/)**: Minimal integration with default UI.
+- **[blinkid-core-api](../../apps/examples/blinkid-core-api/)**: Low-level usage of the core API.
+- **[blinkid-advanced-setup](../../apps/examples/blinkid-advanced-setup/)**: Custom UI and advanced configuration.
+- **[blinkid-preload](../../apps/examples/blinkid-preload/)**: Preloading resources for faster startup.
+
+Each example demonstrates different integration patterns and features.
+
+## Hosting Requirements
+
+- Serve the `public/resources` directory as-is; it contains all required Wasm, worker, and resource files.
+- Must be served in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts).
+- For multithreaded builds, your site must be [cross-origin isolated](https://web.dev/articles/why-coop-coep):
+
+  ```
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+  ```
+
+## License Key
+
+A valid license key is required. Request a free trial at [Microblink Developer Hub](https://account.microblink.com/signin).
+
+## Development
+
+To build the package locally:
+
+1. Install dependencies in the monorepo root:
+
+   ```sh
+   pnpm install
+   ```
+
+2. Build the package:
+
+   ```sh
+   pnpm build
+   ```
+
+The output files will be available in the `dist/`, `types/`, and `public/resources/` directories.
+
+## More Information
+
+- [@microblink/blinkid-core](https://www.npmjs.com/package/@microblink/blinkid-core): Core API reference and advanced usage.
+- [@microblink/blinkid-ux-manager](https://www.npmjs.com/package/@microblink/blinkid-ux-manager): Custom UX and feedback integration.
+- [@microblink/camera-manager](https://www.npmjs.com/package/@microblink/camera-manager): Camera management details.

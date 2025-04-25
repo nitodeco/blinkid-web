@@ -1,56 +1,71 @@
-# BlinkID Core
+# @microblink/blinkid-core
 
-`@microblink/blinkid-core` provides the core BlinkID functionality.
+This package provides the core BlinkID functionality for browser-based document scanning. It exposes a low-level API for initializing and controlling the BlinkID engine, managing sessions, and processing images. It can be used directly by end users for advanced or custom integrations, or as a dependency of higher-level packages such as [`@microblink/blinkid`](https://www.npmjs.com/package/@microblink/blinkid).
 
-## Before you start
+## Overview
 
-`@microblink/blinkid-core` is a part of `@microblink/blinkid`. All packages in the monorepo (TODO: add link) are currently in a prerelease stage.
-
-## Quick start
-
-See the example apps in the `apps/examples` directory in the github repository (TODO: link)
+- Provides the main API for BlinkID scanning and recognition in the browser.
+- Handles initialization, licensing, and session management.
+- Can be used directly by end users for advanced use cases.
+- Used internally by [`@microblink/blinkid`](https://www.npmjs.com/package/@microblink/blinkid).
 
 ## Installation
 
-`blinkid-core` is available on the npm registry and can be installed using a package manager:
+Install from npm using your preferred package manager:
 
 ```sh
-npm install @microblink/blinkid-core # or yarn or pnpm
+npm install @microblink/blinkid-core
+# or
+yarn add @microblink/blinkid-core
+# or
+pnpm add @microblink/blinkid-core
 ```
-
-## Environment & Setup
-
-BlinkID Core is an ESM-only published package for use in browsers using a bundler such as Vite, or by including them directly via [`<script type="module">`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules#applying_the_module_to_your_html) in your HTML.
-
-Alternatively, you can use it via [esm.sh](https://esm.sh/) that allows you to import JavaScript modules from http URLs without a build step.
-
-If used in the `blinkid-monorepo` from github, read the usage instructions in its root (TODO: link).
-
-### Licence key
-
-In order to use BlinkID, you need to have a valid licence key. You can request a free trial license key, after you register, at [Microblink Developer Hub](https://account.microblink.com/signin).
-
-### Hosting the neccessary resources
-
-In order to use BlinkID Core, you need to host the accompanying resources directory, without modifying it. It can be found in `dist/resources` in this package. It contains the following, in 6 different builds:
-
-- The WebAssembly `.wasm` and `.data` files
-- Supporting Emscripten code
-- `@microblink/blinkid-worker` Web Worker
-
-### Hosting requirements
-
-BlinkID Core needs to be run in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) in order to work.
-
-Additionally, to use the multithreaded build, your website also must be cross-origin isolated. This can be achieved by placing the following headers on your website:
-
-```
-"Cross-Origin-Embedder-Policy": "require-corp",
-"Cross-Origin-Opener-Policy": "same-origin",
-```
-
-For more details, check out https://web.dev/articles/why-coop-coep
 
 ## Usage
 
-`blinkid-core` is a low-level API used as a part of the browser SDK. See the example for usage.
+You can use `@microblink/blinkid-core` directly in your project for custom integrations. See the example apps in the `apps/examples` directory in the GitHub repository for usage details.
+
+## Environment & Setup
+
+- ESM-only: Use in browsers with a bundler (e.g., Vite) or via [`<script type="module">`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules#applying_the_module_to_your_html).
+- Can also be used via [esm.sh](https://esm.sh/) for direct HTTP imports.
+
+### License key
+
+A valid license key is required. Request a free trial at [Microblink Developer Hub](https://account.microblink.com/signin).
+
+### Hosting resources
+
+You must host the `dist/resources` directory from this package without modification. It contains:
+
+- WebAssembly `.wasm` and `.data` files
+- Emscripten JS glue code
+- The `@microblink/blinkid-worker` Web Worker script
+
+### Hosting requirements
+
+- Must be served in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts).
+- For multithreaded builds, your site must be [cross-origin isolated](https://web.dev/articles/why-coop-coep):
+
+  ```
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+  ```
+
+## Development
+
+To build the package locally:
+
+1. Install dependencies in the monorepo root:
+
+   ```sh
+   pnpm install
+   ```
+
+2. Build the package:
+
+   ```sh
+   pnpm build
+   ```
+
+The output files will be available in the `dist/` and `types/` directories.

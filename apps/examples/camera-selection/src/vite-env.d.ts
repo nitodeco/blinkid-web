@@ -6,8 +6,6 @@
 
 interface ImportMetaEnv {
   readonly VITE_LICENCE_KEY: string;
-  readonly VITE_SHOW_DEBUG: string;
-  readonly VITE_USE_PORTAL: string;
 }
 
 interface ImportMeta {

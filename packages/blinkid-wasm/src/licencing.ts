@@ -33,13 +33,12 @@ export type LicenseRequest = Readonly<{
 export type LicenseStatusResponse = Record<string, string>;
 
 export type ServerPermissionSubmitResult = Readonly<{
-  status: ServerPermissionSubmitResultStatus;
+  error: ServerPermissionError;
   lease: number;
   networkErrorDescription?: string;
 }>;
 
-export type ServerPermissionSubmitResultStatus =
-  | "ok"
+export type ServerPermissionError =
   | "network-error"
   | "remote-lock"
   | "permission-expired"

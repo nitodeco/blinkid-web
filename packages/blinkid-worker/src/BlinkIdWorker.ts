@@ -287,9 +287,8 @@ class BlinkIdWorker {
         JSON.stringify(serverPermissionResponse),
       );
 
-      if (serverPermissionResult.status !== "ok") {
-        // TODO: more robust error messages
-        throw new Error("Server unlock not ok.");
+      if (serverPermissionResult.error) {
+        throw new Error("Server unlock error: " + serverPermissionResult.error);
       }
     }
   }

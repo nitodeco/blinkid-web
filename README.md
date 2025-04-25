@@ -29,6 +29,12 @@ Install packages:
 pnpm install
 ```
 
+Install necessary conan packages:
+
+```sh
+pnpm conan-install
+```
+
 Run the build process, this will configure and build all the packages in the monorepo:
 
 ```sh

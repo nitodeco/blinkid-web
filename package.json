@@ -8,6 +8,7 @@
     "build:dev": "turbo build:dev --filter={./packages/*}",
     "build:publish": "turbo build:publish --filter={./packages/*}",
     "clean": "turbo clean",
+    "create-github": "pnpm clean && pnpm build:publish && pnpm --filter 'github-release' create-github",
     "lint": "turbo lint",
     "prepare": "husky install",
     "publish-test": "turbo publish-test",
@@ -17,6 +18,7 @@
     "watch": "turbo watch --filter='./packages/*'"
   },
   "devDependencies": {
+    "@changesets/cli": "2.29.2",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.10",
     "syncpack": "13.0.3",
