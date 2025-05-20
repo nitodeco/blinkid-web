@@ -29,8 +29,6 @@ import {
   Switch,
 } from "solid-js";
 
-import { Traverse } from "neotraverse/modern";
-
 type SignupSteps =
   | "intro"
   | "form-input"
@@ -55,11 +53,14 @@ export const App: Component = () => {
   const resultWithoutImages = () => {
     const resultCopy = structuredClone(result());
 
-    new Traverse(resultCopy).forEach((ctx, value) => {
-      if (value instanceof Uint8Array) {
-        ctx.update(new Uint8Array());
-      }
-    });
+    for (const subResult of resultCopy?.subResults ?? []) {
+      // remove the images from the sub result
+      delete subResult?.inputImage;
+      delete subResult?.documentImage;
+      delete subResult?.faceImage;
+      delete subResult?.signatureImage;
+      delete subResult?.barcodeInputImage;
+    }
 
     return resultCopy;
   };

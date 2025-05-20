@@ -11,6 +11,7 @@ import type { SetOptional, Simplify } from "type-fest";
 import { createProxyWorker } from "./createProxyWorker";
 import { getUserId } from "./getUserId";
 import { proxy, Remote } from "comlink";
+import { defaultSessionSettings } from "./defaultSessionSettings";
 
 // User ID is optional outside the worker scope
 export type BlinkIdInitSettings = SetOptional<
@@ -56,6 +57,7 @@ export async function loadBlinkIdCore(
     // we added the `userid` to the settings if not provided, so this assertion is safe
     await remoteWorker.initBlinkId(
       settings as BlinkIdWorkerInitSettings,
+      defaultSessionSettings,
       proxyProgressCallback,
     );
 

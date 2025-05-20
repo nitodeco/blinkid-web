@@ -14,8 +14,8 @@ export const defaultSessionSettings: BlinkIdSessionSettings = {
     tiltDetectionLevel: "mid",
     skipImagesWithBlur: true,
     skipImagesWithGlare: true,
-    skipImagesOccludedByHand: false,
-    skipImagesWithInadequateLightingConditions: false,
+    skipImagesOccludedByHand: true,
+    skipImagesWithInadequateLightingConditions: true,
     combineResultsFromMultipleInputImages: true,
     croppedImageSettings: {
       dotsPerInch: 250,

@@ -2,8 +2,6 @@
  * Copyright (c) 2025 Microblink Ltd. All rights reserved.
  */
 
-import { defaultSessionSettings } from "./defaultSessionSettings";
-
 import {
   BlinkIdSessionSettings,
   CroppedImageSettings,
@@ -72,14 +70,19 @@ export const normalizeDocumentAnonymizationSettings = (
 };
 
 /**
- * Creates merged BlinkId session settings from default settings and user options
+ * Creates merged BlinkId session settings from default settings and user
+ * options
  *
  * @param options User-provided session settings
+ * @param defaultSessionSettings - The base session settings to use. These
+ * settings will be merged with the provided `options`, where `options` can
+ * override specific values.
  *
  * @returns Complete merged settings
  */
 export function buildSessionSettings(
   options: PartialBlinkIdSessionSettings = {},
+  defaultSessionSettings: BlinkIdSessionSettings,
 ): BlinkIdSessionSettings {
   // TODO: find a better way to handle this
   // Remove keys with undefined values from options

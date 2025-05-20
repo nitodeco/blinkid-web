@@ -16,6 +16,7 @@ import {
   BlinkIdUiState,
   BlinkIdUiStateKey,
   blinkIdUiStateMap,
+  firstSideCapturedStates,
   getUiStateKey,
 } from "./blinkid-ui-state";
 import { sleep } from "./utils";
@@ -27,11 +28,14 @@ import { DocumentClassFilter } from "./DocumentClassFilter";
 export class BlinkIdUxManager {
   declare cameraManager: CameraManager;
   declare scanningSession: RemoteScanningSession;
+  declare showDemoOverlay: boolean;
+  declare showProductionOverlay: boolean;
   declare uiState: BlinkIdUiState;
   declare rawUiStateKey: BlinkIdUiStateKey;
   declare feedbackStabilizer: FeedbackStabilizer<typeof blinkIdUiStateMap>;
   declare sessionSettings: BlinkIdSessionSettings;
 
+  #successProcessResult: ProcessResultWithBuffer | undefined;
   #threadBusy = false;
   #timeoutId?: number;
   /** Timeout duration in ms */
@@ -43,6 +47,9 @@ export class BlinkIdUxManager {
     (frameResult: ProcessResultWithBuffer) => void
   >();
   #onErrorCallbacks = new Set<(errorState: BlinkIdProcessingError) => void>();
+  #onDocumentFilteredCallbacks = new Set<
+    (documentClassInfo: DocumentClassInfo) => void
+  >();
   #documentClassFilter?: DocumentClassFilter;
 
   constructor(
@@ -59,6 +66,14 @@ export class BlinkIdUxManager {
     void this.scanningSession.getSettings().then((settings) => {
       this.sessionSettings = settings;
     });
+    void this.scanningSession.showDemoOverlay().then((showDemoOverlay) => {
+      this.showDemoOverlay = showDemoOverlay;
+    });
+    void this.scanningSession
+      .showProductionOverlay()
+      .then((showProductionOverlay) => {
+        this.showProductionOverlay = showProductionOverlay;
+      });
 
     // clear timeout when we stop processing and add one when we start
     const unsubscribePlaybackState = this.cameraManager.subscribe(
@@ -90,6 +105,20 @@ export class BlinkIdUxManager {
 
     // will only trigger if the camera manager is processing frames
     cameraManager.addFrameCaptureCallback(this.#frameCaptureCallback);
+  }
+
+  /**
+   * Indicates whether the UI should display the demo overlay. Controlled by the license property.
+   */
+  getShowDemoOverlay(): boolean {
+    return this.showDemoOverlay;
+  }
+
+  /**
+   * Indicates whether the UI should display the production overlay. Controlled by the license property.
+   */
+  getShowProductionOverlay(): boolean {
+    return this.showProductionOverlay;
   }
 
   /**
@@ -203,6 +232,27 @@ export class BlinkIdUxManager {
     }
   };
 
+  addOnDocumentFilteredCallback(
+    callback: (documentClassInfo: DocumentClassInfo) => void,
+  ) {
+    this.#onDocumentFilteredCallbacks.add(callback);
+    return () => {
+      this.#onDocumentFilteredCallbacks.delete(callback);
+    };
+  }
+
+  #invokeOnDocumentFilteredCallbacks = (
+    documentClassInfo: DocumentClassInfo,
+  ) => {
+    for (const callback of this.#onDocumentFilteredCallbacks) {
+      try {
+        callback(documentClassInfo);
+      } catch (e) {
+        console.error("Error in onDocumentFiltered callback", e);
+      }
+    }
+  };
+
   #invokeOnResultCallbacks = (result: BlinkIdScanningResult) => {
     for (const callback of this.#onResultCallbacks) {
       try {
@@ -248,7 +298,28 @@ export class BlinkIdUxManager {
       colorSpace: "srgb",
     } satisfies ImageData;
 
+    /**
+     * `scanningSession.process()` errors on calls after the document is captured and
+     * the success state is placed on the queue to be shown after the current message's
+     * minimum duration is reached.
+     *
+     * However, we still need to call `#handleUiStateChange()` to update the UI state, so
+     * we stop the loop here by not setting `this.#threadBusy` to `true` and manually
+     * calling `#handleUiStateChange()` with the `DOCUMENT_CAPTURED` state after the
+     * minimum duration of the state is reached.
+     */
+    if (this.#successProcessResult) {
+      window.setTimeout(() => {
+        if (!this.#successProcessResult) {
+          throw new Error("No success process result, should not happen");
+        }
+        this.#handleUiStateChanges(this.#successProcessResult);
+      }, blinkIdUiStateMap.DOCUMENT_CAPTURED.minDuration);
+      return;
+    }
+
     const processResult = await this.scanningSession.process(imageDataLike);
+
     this.#threadBusy = false;
 
     // document class filter
@@ -259,22 +330,13 @@ export class BlinkIdUxManager {
         this.#isDocumentClassified(documentClassInfo) &&
         !this.#documentClassFilter(documentClassInfo)
       ) {
-        this.#markAsUnsupportedDocument(processResult);
+        this.#invokeOnDocumentFilteredCallbacks(documentClassInfo);
       }
-    }
-
-    this.#invokeOnFrameProcessCallbacks(processResult);
-
-    // running stability test
-    if (
-      processResult.inputImageAnalysisResult.processingStatus ===
-      "stability-test-failed"
-    ) {
-      return processResult.arrayBuffer;
     }
 
     // Handle UI state changes
     this.#handleUiStateChanges(processResult);
+    this.#invokeOnFrameProcessCallbacks(processResult);
 
     return processResult.arrayBuffer;
   };
@@ -308,6 +370,12 @@ export class BlinkIdUxManager {
       processResult,
       this.sessionSettings.scanningSettings,
     );
+
+    if (nextUiStateKey === "DOCUMENT_CAPTURED") {
+      // TODO: check if the buffer is still reachable
+      this.#successProcessResult = processResult;
+    }
+
     this.rawUiStateKey = nextUiStateKey;
 
     const newUiState = this.feedbackStabilizer.getNewUiState(nextUiStateKey);
@@ -319,19 +387,21 @@ export class BlinkIdUxManager {
 
     this.uiState = newUiState;
 
-    void this.#handleUiStateChange(newUiState);
-
     this.#invokeOnUiStateChangedCallbacks(newUiState);
+    void this.#handleUiStateChange(newUiState);
   };
 
   // Side-effects are handled here
   #handleUiStateChange = async (uiState: BlinkIdUiState) => {
     this.#setTimeout(uiState);
 
-    // handle SIDE_CAPTURED
-    if (uiState.key === "SIDE_CAPTURED") {
+    // Handle all first side captured states to display both the
+    // animation to reposition the document and the success animation
+    if (firstSideCapturedStates.includes(uiState.key)) {
       this.cameraManager.stopFrameCapture();
       // we need to wait for the compound duration
+      // The DOCUMENT_CAPTURED state is the checkbox animation
+
       await sleep(
         uiState.minDuration + blinkIdUiStateMap.DOCUMENT_CAPTURED.minDuration,
       );
@@ -367,11 +437,6 @@ export class BlinkIdUxManager {
     );
   }
 
-  #markAsUnsupportedDocument(processResult: ProcessResultWithBuffer) {
-    processResult.inputImageAnalysisResult.processingStatus =
-      "unsupported-document";
-  }
-
   /**
    * Clears any active timeout.
    */
@@ -387,9 +452,12 @@ export class BlinkIdUxManager {
    */
   reset() {
     this.clearScanTimeout();
+    this.#threadBusy = false;
+    this.#successProcessResult = undefined;
     this.#onUiStateChangedCallbacks.clear();
     this.#onResultCallbacks.clear();
     this.#onFrameProcessCallbacks.clear();
     this.#onErrorCallbacks.clear();
+    this.#onDocumentFilteredCallbacks.clear();
   }
 }

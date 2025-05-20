@@ -48,6 +48,8 @@ export type WorkerScanningSession = OverrideProperties<
   }
 > & {
   getSettings: () => BlinkIdSessionSettings;
+  showDemoOverlay: () => boolean;
+  showProductionOverlay: () => boolean;
 };
 
 export type BlinkIdWorkerInitSettings = {
@@ -78,7 +80,11 @@ export type ProgressStatusCallback = (progress: DownloadProgress) => void;
 class BlinkIdWorker {
   // core objects
   #wasmModule?: BlinkIdWasmModule;
+  // must be initialized when calling initBlinkId
+  #defaultSessionSettings!: BlinkIdSessionSettings;
   progressStatusCallback?: ProgressStatusCallback;
+  #showDemoOverlay = true;
+  #showProductionOverlay = true;
 
   /**
    * This method loads the Wasm module.
@@ -251,6 +257,7 @@ class BlinkIdWorker {
    */
   async initBlinkId(
     settings: BlinkIdWorkerInitSettings,
+    defaultSessionSettings: BlinkIdSessionSettings,
     progressCallback?: ProgressStatusCallback,
   ) {
     const resourcesPath = new URL(
@@ -258,6 +265,7 @@ class BlinkIdWorker {
       settings.resourcesLocation,
     ).toString();
 
+    this.#defaultSessionSettings = defaultSessionSettings;
     this.progressStatusCallback = progressCallback;
 
     await this.#loadWasm({
@@ -291,6 +299,9 @@ class BlinkIdWorker {
         throw new Error("Server unlock error: " + serverPermissionResult.error);
       }
     }
+
+    this.#showDemoOverlay = licenceUnlockResult.showDemoOverlay;
+    this.#showProductionOverlay = licenceUnlockResult.showProductionOverlay;
   }
 
   createBlinkIdScanningSession(options?: PartialBlinkIdSessionSettings) {
@@ -298,7 +309,10 @@ class BlinkIdWorker {
       throw new Error("Wasm module not loaded");
     }
 
-    const sessionSettings = buildSessionSettings(options);
+    const sessionSettings = buildSessionSettings(
+      options,
+      this.#defaultSessionSettings,
+    );
 
     const session =
       this.#wasmModule.createBlinkIdScanningSession(sessionSettings);
@@ -340,6 +354,8 @@ class BlinkIdWorker {
       deleteLater: () => session.deleteLater(),
       isDeleted: () => session.isDeleted(),
       isAliasOf: (other) => session.isAliasOf(other),
+      showDemoOverlay: () => this.#showDemoOverlay,
+      showProductionOverlay: () => this.#showProductionOverlay,
     };
 
     return proxy(customSession);

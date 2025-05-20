@@ -123,7 +123,7 @@ export class FeedbackStabilizer<SdkSpecificStateMap extends UiStateMap> {
     }
 
     // if there is a single event in the queue, show it
-    if (this.singleEventQueue.length > 0) {
+    if (this.singleEventQueue.length > 0 && this.canShowNewUiState()) {
       const singleEvent = this.singleEventQueue.shift()!; // we know it's not empty
       // clear the queue of regular events
       this.eventQueue = [];

@@ -13,7 +13,10 @@ import {
   Switch,
 } from "solid-js";
 import { createWithSignal } from "solid-zustand";
-import { BlinkIdUiState } from "../core/blinkid-ui-state";
+import {
+  BlinkIdUiState,
+  firstSideCapturedStates,
+} from "../core/blinkid-ui-state";
 import {
   LocalizationProvider,
   LocalizationStrings,
@@ -29,6 +32,10 @@ import { SmartEnvironmentProvider } from "@microblink/shared-components/SmartEnv
 import { OnboardingGuideModal } from "./dialogs/OnboardingGuideModal";
 import { HelpButton, HelpModal } from "./dialogs/HelpModal";
 import { ErrorModal } from "./dialogs/ErrorModal";
+import DemoOverlay from "./assets/demo-overlay.svg?component-solid";
+import MicroblinkOverlay from "./assets/microblink.svg?component-solid";
+
+import styles from "./styles.module.scss";
 
 // `blinkIdUxManager` is not reactive
 export const BlinkIdFeedbackUi: Component<{
@@ -53,6 +60,16 @@ export const BlinkIdFeedbackUi: Component<{
     onCleanup(() => errorCallbackCleanup());
   });
 
+  // Handle document filtered during scanning
+  createEffect(() => {
+    const errorCallbackCleanup =
+      store.blinkIdUxManager.addOnDocumentFilteredCallback((_) => {
+        store.blinkIdUxManager.cameraManager.stopFrameCapture();
+        updateStore({ documentFiltered: true });
+      });
+    onCleanup(() => errorCallbackCleanup());
+  });
+
   const playbackState = createWithSignal(cameraManagerStore)(
     (s) => s.playbackState,
   );
@@ -60,21 +77,27 @@ export const BlinkIdFeedbackUi: Component<{
   const isProcessing = () => playbackState() === "capturing";
 
   // Processing is stopped, but we still want to show the feedback
+  // TODO: see if there is a better way to handle these edge-cases
   const shouldShowFeedback = () => {
     return (
       isProcessing() ||
-      uiState().key === "SIDE_CAPTURED" ||
+      firstSideCapturedStates.includes(uiState().key) ||
       uiState().key === "DOCUMENT_CAPTURED"
     );
+  };
+
+  const shouldShowDemoOverlay = () => {
+    return store.blinkIdUxManager.getShowDemoOverlay();
+  };
+
+  const shouldShowProductionOverlay = () => {
+    return store.blinkIdUxManager.getShowProductionOverlay();
   };
 
   createEffect(() => {
     const removeUiStateChangeCallback =
       store.blinkIdUxManager.addOnUiStateChangedCallback((newUiState) => {
-        let appliedUiState = newUiState;
-        const key = newUiState.key;
-
-        setUiState(appliedUiState);
+        setUiState(newUiState);
       });
 
     onCleanup(() => removeUiStateChangeCallback());
@@ -90,10 +113,7 @@ export const BlinkIdFeedbackUi: Component<{
           }
         }}
       />
-      <LocalizationProvider
-        // setLocalizationRef={() => void 0}
-        userStrings={props.localization}
-      >
+      <LocalizationProvider userStrings={props.localization}>
         <SmartEnvironmentProvider>
           {() => {
             const { t } = useLocalization();
@@ -115,10 +135,29 @@ export const BlinkIdFeedbackUi: Component<{
                       shouldResetScanningSession={true}
                     />
                   </Match>
+                  <Match when={store.documentFiltered}>
+                    <ErrorModal
+                      header={t.document_filtered}
+                      text={t.document_filtered_details}
+                      shouldResetScanningSession={true}
+                    />
+                  </Match>
                 </Switch>
 
                 <Show when={shouldShowFeedback()}>
                   <UiFeedbackOverlay uiState={uiState()} />
+                </Show>
+
+                <Show when={shouldShowDemoOverlay()}>
+                  <div class={styles.demoOverlay}>
+                    <DemoOverlay width="250" />
+                  </div>
+                </Show>
+
+                <Show when={shouldShowProductionOverlay()}>
+                  <div class={styles.microblinkOverlay}>
+                    <MicroblinkOverlay width="100" />
+                  </div>
                 </Show>
 
                 <HelpButton isProcessing={isProcessing()} />

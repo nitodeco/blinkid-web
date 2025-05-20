@@ -8,6 +8,7 @@ import { Remote } from "comlink";
 export * from "./BlinkIdCore";
 export * from "./createCustomImageData";
 export * from "./createProxyWorker";
+export * from "./defaultSessionSettings";
 export * from "./getCrossOriginWorkerURL";
 export * from "./getUserId";
 

@@ -8,7 +8,6 @@ import {
   createEffect,
   createSignal,
   Match,
-  on,
   onCleanup,
   ParentComponent,
   Show,
@@ -17,7 +16,11 @@ import {
 import { Motion, Presence } from "solid-motionone";
 
 import { clsx } from "clsx";
-import { BlinkIdUiState, blinkIdUiStateMap } from "../core/blinkid-ui-state";
+import {
+  BlinkIdUiState,
+  blinkIdUiStateMap,
+  firstSideCapturedStates,
+} from "../core/blinkid-ui-state";
 import { useLocalization } from "./LocalizationContext";
 import { feedbackMessages } from "./feedbackMessages";
 
@@ -26,6 +29,9 @@ import CardIconBack from "./assets/reticles/card-back.svg?component-solid";
 import CardIconFront from "./assets/reticles/card-front.svg?component-solid";
 import DoneIcon from "./assets/reticles/done.svg?component-solid";
 import FullIcon from "./assets/reticles/full.svg?component-solid";
+import PassportBottom from "./assets/reticles/passport-bottom.svg?component-solid";
+import PassportHighlight from "./assets/reticles/passport-highlight.svg?component-solid";
+import PassportTop from "./assets/reticles/passport-top.svg?component-solid";
 import SearchIcon from "./assets/reticles/searching.svg?component-solid";
 import ScanIcon from "./assets/reticles/spin.svg?component-solid";
 
@@ -36,13 +42,16 @@ export const UiFeedbackOverlay: Component<{
    * This is a hack since we don't have a discrete state for both a successful
    * scan and a card flip.
    */
-
   const [showSuccessOnly, setShowSuccessOnly] = createSignal(false);
   let timeout: number;
 
+  /**
+   * Handles showing the success feedback before other states defined in {@link firstSideCapturedStates}
+   */
   createEffect(() => {
-    if (props.uiState.key === "SIDE_CAPTURED") {
+    if (firstSideCapturedStates.includes(props.uiState.key)) {
       setShowSuccessOnly(true);
+
       // TODO: incorrectly resolving to NodeJS timeout
       timeout = window.setTimeout(
         () => setShowSuccessOnly(false),
@@ -56,12 +65,43 @@ export const UiFeedbackOverlay: Component<{
     onCleanup(() => clearTimeout(timeout!));
   });
 
+  const isPassportCaptureState = () => {
+    return (
+      props.uiState.key === "MOVE_TOP" ||
+      props.uiState.key === "MOVE_LEFT" ||
+      props.uiState.key === "MOVE_RIGHT"
+    );
+  };
+
+  const getDirection = () => {
+    switch (props.uiState.key) {
+      case "MOVE_TOP":
+        return "top";
+      case "MOVE_LEFT":
+        return "left";
+      case "MOVE_RIGHT":
+        return "right";
+      default:
+        return "top";
+    }
+  };
+
   return (
     <>
-      <div class="absolute left-0 top-0 grid size-full select-none place-items-center">
+      <div
+        class="absolute left-0 top-0 grid size-full select-none place-items-center
+          contain-strict overflow-hidden"
+      >
         <div>
+          {/* we only want the actual reticle-like spinners to remain in the screen center
+          which is why the container is sized the same dimensions as the reticle
+
+          The layout size shouldn't change between the different reticle types, so that the
+          message positioning is consistent.
+           */}
           <div class="size-24">
-            <div class="absolute" aria-hidden>
+            <div class="relative size-full grid place-items-center" aria-hidden>
+              {/* default spinners */}
               <Switch>
                 <Match when={props.uiState.reticleType === "searching"}>
                   <SearchReticle />
@@ -72,6 +112,8 @@ export const UiFeedbackOverlay: Component<{
                 <Match when={props.uiState.reticleType === "error"}>
                   <ErrorReticle />
                 </Match>
+
+                {/* Success – reused between multiple states */}
                 <Match
                   when={
                     props.uiState.reticleType === "done" || showSuccessOnly()
@@ -79,6 +121,17 @@ export const UiFeedbackOverlay: Component<{
                 >
                   <SuccessFeedback />
                 </Match>
+
+                {/* Success – reused between multiple states */}
+                <Match
+                  when={
+                    props.uiState.reticleType === "done" || showSuccessOnly()
+                  }
+                >
+                  <SuccessFeedback />
+                </Match>
+
+                {/* flip card */}
                 <Match
                   when={
                     props.uiState.reticleType === "flip" && !showSuccessOnly()
@@ -86,9 +139,19 @@ export const UiFeedbackOverlay: Component<{
                 >
                   <FlipCardFeedback />
                 </Match>
+
+                {/* move passport */}
+                <Match when={isPassportCaptureState() && !showSuccessOnly()}>
+                  <PassportAnimation
+                    direction={getDirection()}
+                    duration={blinkIdUiStateMap[props.uiState.key].minDuration}
+                  />
+                </Match>
               </Switch>
             </div>
           </div>
+
+          {/* feedback message */}
           <Show when={!showSuccessOnly()}>
             <UiFeedbackMessage uiState={props.uiState} />
           </Show>
@@ -98,52 +161,122 @@ export const UiFeedbackOverlay: Component<{
   );
 };
 
-const SuccessFeedback: Component = () => (
-  <Motion
-    initial={{ opacity: 0, scale: 0.5 }}
-    animate={{
-      opacity: 1,
-      scale: 1,
-      transition: { easing: "ease-in-out", duration: 0.3 },
-    }}
-    exit={{ opacity: 0, scale: 5 }}
-  >
-    <DoneIcon class="[&>path]:fill-[initial] size-24 drop-shadow-[0_0_15px_rgba(0,0,0,0.1)]" />
-  </Motion>
-);
-
-const carSideStyles = `w-35 backface-hidden drop-shadow-[0_0_15px_rgba(0,0,0,0.1)]`;
-
-const FlipCardFeedback: Component = () => (
-  // fix magic number -24px
-  <div class="relative perspective-300px left--6">
+const SuccessFeedback: Component = () => {
+  return (
     <Motion
-      class="relative preserve-3d"
-      initial={{ opacity: 0 }}
+      initial={{ opacity: 0, scale: 0.5 }}
       animate={{
         opacity: 1,
-        rotateY: ["180deg"],
-        transition: {
-          rotateY: {
-            duration: blinkIdUiStateMap.SIDE_CAPTURED.minDuration / 1000,
-          },
-          opacity: {
-            duration: 0.5,
-          },
-        },
+        scale: 1,
+        transition: { easing: "ease-in-out", duration: 0.3 },
       }}
-      exit={{ opacity: 0 }}
+      exit={{ opacity: 0, scale: 5 }}
     >
-      <CardIconFront class={carSideStyles} />
-      <CardIconBack
-        class={clsx(
-          carSideStyles,
-          "absolute top-0 left-0 w-full transform rotate-y-180",
-        )}
-      />
+      <DoneIcon class="[&>path]:fill-[initial] size-24 drop-shadow-[0_0_15px_rgba(0,0,0,0.1)]" />
     </Motion>
-  </div>
-);
+  );
+};
+
+const FlipCardFeedback: Component = () => {
+  const cardSideStyles = `backface-hidden drop-shadow-[0_0_15px_rgba(0,0,0,0.1)]`;
+
+  return (
+    <div class="absolute perspective-300px bottom-0">
+      <Motion
+        class="relative preserve-3d w-24"
+        initial={{ opacity: 0 }}
+        animate={{
+          opacity: 1,
+          rotateY: ["180deg"],
+          transition: {
+            rotateY: {
+              duration: blinkIdUiStateMap.FLIP_CARD.minDuration / 1000,
+            },
+            opacity: {
+              duration: 0.5,
+            },
+          },
+        }}
+        exit={{ opacity: 0 }}
+      >
+        {/* we don't set the dimensions, so that the ratio is naturally preserved */}
+        <CardIconFront class={cardSideStyles} />
+        <CardIconBack
+          class={clsx(
+            cardSideStyles,
+            "absolute top-0 left-0 w-full transform rotate-y-180",
+          )}
+        />
+      </Motion>
+    </div>
+  );
+};
+
+const PassportAnimation: Component<{
+  direction: "top" | "right" | "left";
+  duration: number;
+}> = (props) => {
+  const rotation = () => {
+    switch (props.direction) {
+      case "top":
+        return "0deg";
+      case "right":
+        return "90deg";
+      case "left":
+        return "-90deg";
+    }
+  };
+
+  return (
+    <div class="absolute perspective-300px bottom-0">
+      <Motion
+        class="relative"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div class="relative" style={{ transform: `rotate(${rotation()})` }}>
+          <Motion
+            class="w-24"
+            initial={{ opacity: 0.3 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: props.duration / 1000,
+              easing: "ease",
+            }}
+          >
+            <PassportTop class="[&>path]:fill-[currentColor] drop-shadow-[0_0_15px_rgba(0,0,0,0.1)]" />
+          </Motion>
+
+          <Motion
+            class="w-24"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 0.3 }}
+            transition={{
+              duration: props.duration / 1000,
+              easing: "ease",
+            }}
+          >
+            <PassportBottom class="[&>path]:fill-[currentColor] drop-shadow-[0_0_15px_rgba(0,0,0,0.1)]" />
+          </Motion>
+
+          <Motion
+            class="absolute bottom-0 w-full"
+            initial={{ y: "0" }}
+            animate={{ y: "-100%" }}
+            transition={{
+              duration: props.duration / 1000,
+              easing: "ease",
+            }}
+          >
+            <PassportHighlight class="scale-130" />
+          </Motion>
+        </div>
+      </Motion>
+    </div>
+  );
+};
 
 const ReticleContainer: ParentComponent<{
   type: BlinkIdUiState["reticleType"];
@@ -151,7 +284,8 @@ const ReticleContainer: ParentComponent<{
   return (
     <Motion.div
       class={clsx(
-        "grid size-24 place-items-center rounded-full backdrop-blur-xl bg-opacity-30",
+        `absolute bottom-0 grid size-full place-items-center rounded-full
+        backdrop-blur-xl bg-opacity-30`,
         props.type === "error" ? "bg-error-500 " : "bg-dark-100",
       )}
       initial={{ opacity: 0 }}
@@ -226,7 +360,7 @@ const UiFeedbackMessage: Component<{
   };
 
   return (
-    <div class="absolute left-0 mt-2 w-full flex justify-center">
+    <div class="absolute left-0 mt-3 w-full flex justify-center p-inline-4">
       <Presence exitBeforeEnter>
         <Rerun on={() => props.uiState.key}>
           <Show when={message()}>
@@ -251,6 +385,3 @@ const UiFeedbackMessage: Component<{
     </div>
   );
 };
-
-// i used this somewhere, no idea where
-// h-vh supports-[(height:100dvh)]:h-dvh

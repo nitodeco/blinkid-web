@@ -13,6 +13,8 @@ export type LicenseUnlockResult = Readonly<{
   sdkVersion: string;
   unlockResult: LicenseTokenState;
   licenseError: string;
+  showDemoOverlay: boolean;
+  showProductionOverlay: boolean;
 }>;
 
 export type LicenseTokenState =
