@@ -6,6 +6,7 @@ import { getPackagePath, linkResources } from "@microblink/utils";
 import dns from "dns";
 import { ServerOptions, defineConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
+import { qrcode } from "vite-plugin-qrcode";
 import solidPlugin from "vite-plugin-solid";
 import { fs } from "zx";
 import { dependencies } from "./package.json";
@@ -40,6 +41,7 @@ export default defineConfig((config) => {
           ranOnce = true;
         },
       },
+      qrcode(),
       solidPlugin(),
       // Generates certificates for https
       mkcert(),

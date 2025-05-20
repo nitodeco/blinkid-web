@@ -43,12 +43,12 @@ For more advanced usage, customization, or integration with your own UI, see the
 
 ## Example Apps
 
-See the [`apps/examples`](../../apps/examples) directory for ready-to-run demos:
+Explore example applications in the GitHub repository for ready-to-run demos:
 
-- **[blinkid-simple](../../apps/examples/blinkid-simple/)**: Minimal integration with default UI.
-- **[blinkid-core-api](../../apps/examples/blinkid-core-api/)**: Low-level usage of the core API.
-- **[blinkid-advanced-setup](../../apps/examples/blinkid-advanced-setup/)**: Custom UI and advanced configuration.
-- **[blinkid-preload](../../apps/examples/blinkid-preload/)**: Preloading resources for faster startup.
+- **[blinkid-simple](https://github.com/BlinkID/blinkid-web/tree/main/apps/examples/blinkid-simple)**: Minimal integration with default UI.
+- **[blinkid-core-api](https://github.com/BlinkID/blinkid-web/tree/main/apps/examples/blinkid-core-api)**: Low-level usage of the core API.
+- **[blinkid-advanced-setup](https://github.com/BlinkID/blinkid-web/tree/main/apps/examples/blinkid-advanced-setup)**: Custom UI and advanced configuration.
+- **[blinkid-preload](https://github.com/BlinkID/blinkid-web/tree/main/apps/examples/blinkid-preload)**: Preloading resources for faster startup.
 
 Each example demonstrates different integration patterns and features.
 

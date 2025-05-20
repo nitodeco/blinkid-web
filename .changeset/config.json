@@ -3,7 +3,15 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [],
+  "linked": [
+    [
+      "@microblink/blinkid",
+      "@microblink/blinkid-core",
+      "@microblink/blinkid-ux-manager",
+      "@microblink/blinkid-wasm",
+      "@microblink/blinkid-worker"
+    ]
+  ],
   "access": "restricted",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",

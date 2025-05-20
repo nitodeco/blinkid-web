@@ -10,5 +10,5 @@ export default defineWorkspace([
   // https://vitest.dev/guide/workspace.html#defining-a-workspace
   "!packages/blinkid",
   "!packages/blinkid-core",
-  "!packages/blinkid-worker",
+  // "!packages/blinkid-worker",
 ]);

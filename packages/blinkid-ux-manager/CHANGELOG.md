@@ -1,5 +1,17 @@
 # @microblink/blinkid-ux-manager
 
+## 7.2.0
+
+### Minor Changes
+
+- 5d08204: - Implemented passport feedback
+  - Added document filtered callbacks
+  - Various bug fixes
+
+### Patch Changes
+
+- @microblink/blinkid-core@7.2.0
+
 ## 7.1.0
 
 ### Patch Changes

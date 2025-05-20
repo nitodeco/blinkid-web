@@ -180,23 +180,24 @@ describe("Single-emitted events", () => {
     expect(eventQueue).not.toContainEqual({ key: "X" });
   });
 
-  // temporary disable
-  // test("single emitted emits after time window", () => {
-  //   feedEvents(["B", "C", "C", "C", "X", "C", "C", "C", "B"], 20);
-  //   expect(stabilizer.currentState.key).toEqual("A");
-  //   clock.tick(1000);
-  //   stabilizer.getNewUiState("B");
-  //   expect(stabilizer.currentState.key).toEqual("X");
-  // });
-
-  test("single emitted event duration is respected", () => {
-    feedEvents(["B", "X", "C", "C", "B"], 20);
-    expect(stabilizer.currentState.key).toEqual("X");
+  test("single emitted emits after time window", () => {
+    feedEvents(["B", "C", "C", "C", "X", "C", "C", "C", "B"], 20);
+    expect(stabilizer.currentState.key).toEqual("A");
     clock.tick(1000);
     stabilizer.getNewUiState("B");
     expect(stabilizer.currentState.key).toEqual("X");
-    clock.tick(2000); // minimum duration of X is 2000ms
-    feedEvents(["B", "C", "C", "B"], 20);
-    expect(stabilizer.currentState.key).toEqual("B");
   });
+
+  // This test is wrong. X shouldn't be able to override any
+  // other event that has been emitted in the last time window
+  // test("single emitted event duration is respected", () => {
+  //   feedEvents(["B", "X", "C", "C", "B"], 20);
+  //   expect(stabilizer.currentState.key).toEqual("X");
+  //   clock.tick(1000);
+  //   stabilizer.getNewUiState("B");
+  //   expect(stabilizer.currentState.key).toEqual("X");
+  //   clock.tick(2000); // minimum duration of X is 2000ms
+  //   feedEvents(["B", "C", "C", "B"], 20);
+  //   expect(stabilizer.currentState.key).toEqual("B");
+  // });
 });

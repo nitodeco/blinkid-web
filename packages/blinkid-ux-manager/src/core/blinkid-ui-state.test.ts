@@ -9,56 +9,19 @@ import {
   PartialProcessResult,
 } from "./blinkid-ui-state";
 import {
+  defaultSessionSettings,
   DetectionStatus,
+  DocumentRotation,
   ImageAnalysisLightingStatus,
   ScanningSettings,
   ScanningSide,
 } from "@microblink/blinkid-core";
 import { merge } from "merge-anything";
 
-// todo export this from the core or somewhere else so it's consumable cross packages
-export const defaultScanningSettings: ScanningSettings = {
-  allowUncertainFrontSideScan: false,
-  blurDetectionLevel: "mid",
-  glareDetectionLevel: "mid",
-  tiltDetectionLevel: "mid",
-  skipImagesWithBlur: true,
-  skipImagesWithGlare: true,
-  skipImagesOccludedByHand: false,
-  skipImagesWithInadequateLightingConditions: false,
-  combineResultsFromMultipleInputImages: true,
-  croppedImageSettings: {
-    dotsPerInch: 250,
-    extensionFactor: 0,
-    returnDocumentImage: false,
-    returnFaceImage: false,
-    returnSignatureImage: false,
-  },
-  customDocumentAnonymizationSettings: [],
-  customDocumentRules: [],
-  enableBarcodeScanOnly: false,
-  enableCharacterValidation: true,
-  inputImageMargin: 0,
-  maxAllowedMismatchesPerField: 0,
-  recognitionModeFilter: {
-    enableBarcodeId: true,
-    enableFullDocumentRecognition: true,
-    enableMrzId: true,
-    enableMrzPassport: true,
-    enableMrzVisa: true,
-    enablePhotoId: true,
-  },
-  returnInputImages: false,
-  scanCroppedDocumentImage: false,
-  scanPassportDataPageOnly: false,
-  scanUnsupportedBack: false,
-  anonymizationMode: undefined,
-};
-
 const getMergedSettings = (
   overrides: Partial<ScanningSettings> = {},
 ): ScanningSettings => {
-  return merge(defaultScanningSettings, overrides);
+  return merge(defaultSessionSettings.scanningSettings, overrides);
 };
 
 const createProcessResult = (overrides = {}): PartialProcessResult => {
@@ -84,7 +47,7 @@ describe("getUiStateKey", () => {
       expect(result).toBe<BlinkIdUiStateKey>("DOCUMENT_CAPTURED");
     });
 
-    test("should return SIDE_CAPTURED when one side is scanned", () => {
+    test("should return FLIP_CARD when one side is scanned", () => {
       const processResult = createProcessResult({
         resultCompleteness: { scanningStatus: "side-scanned" },
       });
@@ -92,7 +55,7 @@ describe("getUiStateKey", () => {
 
       const result = getUiStateKey(processResult, settings);
 
-      expect(result).toBe<BlinkIdUiStateKey>("SIDE_CAPTURED");
+      expect(result).toBe<BlinkIdUiStateKey>("FLIP_CARD");
     });
 
     test("should return SCAN_BARCODE when scanning barcode is in progress", () => {
@@ -126,7 +89,9 @@ describe("getUiStateKey", () => {
       "should return $expected when document detection status is $status",
       ({ status, expected }) => {
         const processResult = createProcessResult({
-          inputImageAnalysisResult: { documentDetectionStatus: status },
+          inputImageAnalysisResult: {
+            documentDetectionStatus: status,
+          },
         });
         const settings = getMergedSettings();
 
@@ -149,7 +114,10 @@ describe("getUiStateKey", () => {
         "should return $expected when blur is detected and skipImagesWithBlur is $skipImagesWithBlur",
         ({ skipImagesWithBlur, expected }) => {
           const processResult = createProcessResult({
-            inputImageAnalysisResult: { blurDetectionStatus: "detected" },
+            inputImageAnalysisResult: {
+              processingStatus: "image-preprocessing-failed",
+              blurDetectionStatus: "detected",
+            },
           });
           const settings = getMergedSettings({ skipImagesWithBlur });
 
@@ -171,7 +139,10 @@ describe("getUiStateKey", () => {
         "should return $expected when glare is detected and skipImagesWithGlare is $skipImagesWithGlare",
         ({ skipImagesWithGlare, expected }) => {
           const processResult = createProcessResult({
-            inputImageAnalysisResult: { glareDetectionStatus: "detected" },
+            inputImageAnalysisResult: {
+              processingStatus: "image-preprocessing-failed",
+              glareDetectionStatus: "detected",
+            },
           });
           const settings = getMergedSettings({ skipImagesWithGlare });
 
@@ -186,6 +157,7 @@ describe("getUiStateKey", () => {
       test("should return SENSING_FRONT when both blur and glare are detected but skip settings are disabled", () => {
         const processResult = createProcessResult({
           inputImageAnalysisResult: {
+            processingStatus: "image-preprocessing-failed",
             blurDetectionStatus: "detected",
             glareDetectionStatus: "detected",
           },
@@ -201,7 +173,7 @@ describe("getUiStateKey", () => {
       });
     });
 
-    describe.skip("Lighting Conditions", () => {
+    describe("Lighting Conditions", () => {
       test.each<{
         status: ImageAnalysisLightingStatus;
         expected: BlinkIdUiStateKey;
@@ -228,10 +200,13 @@ describe("getUiStateKey", () => {
           skipImagesWithInadequateLightingConditions: false,
         },
       ])(
-        "should return $expected when lighting status is $status and skipImagesWithInadequateLightingConditions is $enabled",
+        "should return $expected when lighting status is $status and skipImagesWithInadequateLightingConditions is $skipImagesWithInadequateLightingConditions",
         ({ status, expected, skipImagesWithInadequateLightingConditions }) => {
           const processResult = createProcessResult({
-            inputImageAnalysisResult: { documentLightingStatus: status },
+            inputImageAnalysisResult: {
+              processingStatus: "image-preprocessing-failed",
+              documentLightingStatus: status,
+            },
           });
           const settings = getMergedSettings({
             skipImagesWithInadequateLightingConditions:
@@ -244,6 +219,100 @@ describe("getUiStateKey", () => {
         },
       );
     });
+  });
+
+  describe("Passport Sensing States", () => {
+    // This case can actually never happen.
+    test("should return SENSING_DATA_PAGE when scanning first side of passport", () => {
+      const processResult = createProcessResult({
+        inputImageAnalysisResult: {
+          scanningSide: "first",
+          documentClassInfo: { type: "passport" },
+        },
+      });
+      const settings = getMergedSettings();
+
+      const result = getUiStateKey(processResult, settings);
+
+      expect(result).toBe<BlinkIdUiStateKey>("SENSING_DATA_PAGE");
+    });
+
+    test.each<{ rotation: DocumentRotation; expected: BlinkIdUiStateKey }>([
+      { rotation: "zero", expected: "SENSING_TOP_PAGE" },
+      { rotation: "not-available", expected: "SENSING_TOP_PAGE" },
+      { rotation: "upside-down", expected: "SENSING_TOP_PAGE" },
+      { rotation: "counter-clockwise-90", expected: "SENSING_LEFT_PAGE" },
+      { rotation: "clockwise-90", expected: "SENSING_RIGHT_PAGE" },
+    ])(
+      "should return $expected when scanning second side of passport with rotation $rotation",
+      ({ rotation, expected }) => {
+        const processResult = createProcessResult({
+          inputImageAnalysisResult: {
+            scanningSide: "second",
+            documentClassInfo: { type: "passport" },
+            documentRotation: rotation,
+          },
+        });
+        const settings = getMergedSettings();
+
+        const result = getUiStateKey(processResult, settings);
+
+        expect(result).toBe<BlinkIdUiStateKey>(expected);
+      },
+    );
+  });
+
+  describe("Passport Navigation States", () => {
+    test.each<{ rotation: DocumentRotation; expected: BlinkIdUiStateKey }>([
+      { rotation: "zero", expected: "MOVE_TOP" },
+      { rotation: "counter-clockwise-90", expected: "MOVE_LEFT" },
+      { rotation: "clockwise-90", expected: "MOVE_RIGHT" },
+    ])(
+      "should return $expected when passport document rotation is $rotation",
+      ({ rotation, expected }) => {
+        const processResult = createProcessResult({
+          resultCompleteness: {
+            scanningStatus: "side-scanned",
+          },
+          inputImageAnalysisResult: {
+            documentClassInfo: { type: "passport" },
+            documentRotation: rotation,
+          },
+        });
+        const settings = getMergedSettings();
+
+        const result = getUiStateKey(processResult, settings);
+
+        expect(result).toBe<BlinkIdUiStateKey>(expected);
+      },
+    );
+  });
+
+  describe("Wrong Passport Page States", () => {
+    test.each<{ rotation: DocumentRotation; expected: BlinkIdUiStateKey }>([
+      { rotation: "zero", expected: "WRONG_TOP_PAGE" },
+      { rotation: "upside-down", expected: "WRONG_TOP_PAGE" },
+      { rotation: "not-available", expected: "WRONG_TOP_PAGE" },
+      { rotation: "counter-clockwise-90", expected: "WRONG_LEFT_PAGE" },
+      { rotation: "clockwise-90", expected: "WRONG_RIGHT_PAGE" },
+    ])(
+      "should return $expected when scanning wrong side with rotation $rotation",
+      ({ rotation, expected }) => {
+        const processResult = createProcessResult({
+          inputImageAnalysisResult: {
+            scanningSide: "second",
+            processingStatus: "scanning-wrong-side",
+            documentClassInfo: { type: "passport" },
+            documentRotation: rotation,
+          },
+        });
+        const settings = getMergedSettings();
+
+        const result = getUiStateKey(processResult, settings);
+
+        expect(result).toBe<BlinkIdUiStateKey>(expected);
+      },
+    );
   });
 
   describe("Occlusion States", () => {
@@ -260,7 +329,7 @@ describe("getUiStateKey", () => {
       expect(result).toBe<BlinkIdUiStateKey>("OCCLUDED");
     });
 
-    test.skip.each<{
+    test.each<{
       skipImagesOccludedByHand: boolean;
       expected: BlinkIdUiStateKey;
     }>([
@@ -316,6 +385,22 @@ describe("getUiStateKey", () => {
       const result = getUiStateKey(processResult, settings);
 
       expect(result).toBe<BlinkIdUiStateKey>("OCCLUDED");
+    });
+  });
+
+  describe("Image Extraction Failures", () => {
+    test("should return FACE_PHOTO_OCCLUDED when face photo is not fully visible", () => {
+      const processResult = createProcessResult({
+        inputImageAnalysisResult: {
+          processingStatus: "image-return-failed",
+          imageExtractionFailures: ["face"],
+        },
+      });
+      const settings = getMergedSettings();
+
+      const result = getUiStateKey(processResult, settings);
+
+      expect(result).toBe<BlinkIdUiStateKey>("FACE_PHOTO_OCCLUDED");
     });
   });
 
@@ -384,21 +469,6 @@ describe("getUiStateKey", () => {
 
       expect(result).toBe<BlinkIdUiStateKey>("SENSING_FRONT");
     });
-
-    test.skip("should return OCCLUDED when document hand occlusion is detected", () => {
-      const processResult = createProcessResult({
-        inputImageAnalysisResult: {
-          documentHandOcclusionStatus: "detected",
-        },
-      });
-      const settings = getMergedSettings({
-        skipImagesOccludedByHand: true,
-      });
-
-      const result = getUiStateKey(processResult, settings);
-
-      expect(result).toBe<BlinkIdUiStateKey>("OCCLUDED");
-    });
   });
 
   describe("Priority Rules", () => {
@@ -428,7 +498,10 @@ describe("getUiStateKey", () => {
 
     test("should prioritize DOCUMENT_CAPTURED over blur issues", () => {
       const processResult = createProcessResult({
-        inputImageAnalysisResult: { blurDetectionStatus: "detected" },
+        inputImageAnalysisResult: {
+          processingStatus: "image-preprocessing-failed",
+          blurDetectionStatus: "detected",
+        },
         resultCompleteness: { scanningStatus: "document-scanned" },
       });
       const settings = getMergedSettings();
@@ -438,19 +511,22 @@ describe("getUiStateKey", () => {
       expect(result).toBe<BlinkIdUiStateKey>("DOCUMENT_CAPTURED");
     });
 
-    test("should prioritize SIDE_CAPTURED over blur detection", () => {
+    test("should prioritize FLIP_CARD over blur detection", () => {
       const processResult = createProcessResult({
-        inputImageAnalysisResult: { blurDetectionStatus: "detected" },
+        inputImageAnalysisResult: {
+          processingStatus: "image-preprocessing-failed",
+          blurDetectionStatus: "detected",
+        },
         resultCompleteness: { scanningStatus: "side-scanned" },
       });
       const settings = getMergedSettings();
 
       const result = getUiStateKey(processResult, settings);
 
-      expect(result).toBe<BlinkIdUiStateKey>("SIDE_CAPTURED");
+      expect(result).toBe<BlinkIdUiStateKey>("FLIP_CARD");
     });
 
-    test("should prioritize SIDE_CAPTURED over glare detection", () => {
+    test("should prioritize FLIP_CARD over glare detection", () => {
       const processResult = createProcessResult({
         inputImageAnalysisResult: { glareDetectionStatus: "detected" },
         resultCompleteness: { scanningStatus: "side-scanned" },
@@ -459,10 +535,10 @@ describe("getUiStateKey", () => {
 
       const result = getUiStateKey(processResult, settings);
 
-      expect(result).toBe<BlinkIdUiStateKey>("SIDE_CAPTURED");
+      expect(result).toBe<BlinkIdUiStateKey>("FLIP_CARD");
     });
 
-    test("should prioritize SIDE_CAPTURED over wrong side detection", () => {
+    test("should prioritize FLIP_CARD over wrong side detection", () => {
       const processResult = createProcessResult({
         inputImageAnalysisResult: { processingStatus: "scanning-wrong-side" },
         resultCompleteness: { scanningStatus: "side-scanned" },
@@ -471,7 +547,7 @@ describe("getUiStateKey", () => {
 
       const result = getUiStateKey(processResult, settings);
 
-      expect(result).toBe<BlinkIdUiStateKey>("SIDE_CAPTURED");
+      expect(result).toBe<BlinkIdUiStateKey>("FLIP_CARD");
     });
 
     test("should prioritize UNSUPPORTED_DOCUMENT over side captured", () => {
@@ -486,9 +562,10 @@ describe("getUiStateKey", () => {
       expect(result).toBe<BlinkIdUiStateKey>("UNSUPPORTED_DOCUMENT");
     });
 
-    test.skip("should prioritize lighting issues over GLARE_DETECTED", () => {
+    test("should prioritize lighting issues over GLARE_DETECTED", () => {
       const processResult = createProcessResult({
         inputImageAnalysisResult: {
+          processingStatus: "image-preprocessing-failed",
           documentLightingStatus: "too-dark",
           glareDetectionStatus: "detected",
         },
@@ -506,6 +583,7 @@ describe("getUiStateKey", () => {
     test("should prioritize GLARE_DETECTED over BLUR_DETECTED when both are detected", () => {
       const processResult = createProcessResult({
         inputImageAnalysisResult: {
+          processingStatus: "image-preprocessing-failed",
           blurDetectionStatus: "detected",
           glareDetectionStatus: "detected",
         },
@@ -518,6 +596,58 @@ describe("getUiStateKey", () => {
       const result = getUiStateKey(processResult, settings);
 
       expect(result).toBe<BlinkIdUiStateKey>("GLARE_DETECTED");
+    });
+
+    test("should prioritize DOCUMENT_CAPTURED over passport navigation states", () => {
+      const processResult = createProcessResult({
+        inputImageAnalysisResult: {
+          processingStatus: "awaiting-other-side",
+          documentClassInfo: { type: "passport" },
+          documentRotation: "zero",
+        },
+        resultCompleteness: { scanningStatus: "document-scanned" },
+      });
+      const settings = getMergedSettings();
+
+      const result = getUiStateKey(processResult, settings);
+
+      expect(result).toBe<BlinkIdUiStateKey>("DOCUMENT_CAPTURED");
+    });
+
+    // Passports are more specific than other documents, so this test is
+    // not valid.
+    test.skip("should prioritize FLIP_CARD over wrong passport page states", () => {
+      const processResult = createProcessResult({
+        inputImageAnalysisResult: {
+          scanningSide: "second",
+          processingStatus: "scanning-wrong-side",
+          documentClassInfo: { type: "passport" },
+          documentRotation: "zero",
+        },
+        resultCompleteness: { scanningStatus: "side-scanned" },
+      });
+      const settings = getMergedSettings();
+
+      const result = getUiStateKey(processResult, settings);
+
+      expect(result).toBe<BlinkIdUiStateKey>("FLIP_CARD");
+    });
+
+    test("should prioritize WRONG_TOP_PAGE over blur detection for passports", () => {
+      const processResult = createProcessResult({
+        inputImageAnalysisResult: {
+          scanningSide: "second",
+          processingStatus: "scanning-wrong-side",
+          documentClassInfo: { type: "passport" },
+          documentRotation: "zero",
+          blurDetectionStatus: "detected",
+        },
+      });
+      const settings = getMergedSettings({ skipImagesWithBlur: true });
+
+      const result = getUiStateKey(processResult, settings);
+
+      expect(result).toBe<BlinkIdUiStateKey>("WRONG_TOP_PAGE");
     });
 
     test("should prioritize DOCUMENT_CAPTURED over all other issues", () => {

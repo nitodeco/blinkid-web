@@ -20,11 +20,9 @@ import {
 import { Component, createSignal, onMount, Show } from "solid-js";
 import { ScoreDisplay } from "./ScoreDisplay";
 
-import { Traverse } from "neotraverse/modern";
-
-const SHOW_DEBUG = false;
+const SHOW_DEBUG = true;
 const USE_PORTAL = true;
-const SHOW_ONBOARDING = true;
+const SHOW_ONBOARDING = false;
 
 const targetNode = !USE_PORTAL ? document.getElementById("root")! : undefined;
 
@@ -42,38 +40,50 @@ export const App: Component = () => {
   const resultWithoutImages = () => {
     const resultCopy = structuredClone(result());
 
-    new Traverse(resultCopy).forEach((ctx, value) => {
-      if (value instanceof Uint8Array) {
-        ctx.update(new Uint8Array());
-      }
-    });
+    for (const subResult of resultCopy?.subResults ?? []) {
+      // remove the images from the sub result
+      delete subResult?.inputImage;
+      delete subResult?.documentImage;
+      delete subResult?.faceImage;
+      delete subResult?.signatureImage;
+      delete subResult?.barcodeInputImage;
+    }
 
     return resultCopy;
   };
 
   async function init() {
     setLoadState("loading");
+    setResult(undefined);
 
     // we first initialize the direct API. This loads the WASM module and initializes the engine
     const blinkIdCore = await loadBlinkIdCore({
       licenseKey: import.meta.env.VITE_LICENCE_KEY,
-      wasmVariant: "advanced",
+      // wasmVariant: "advanced",
     });
 
-    const session = await blinkIdCore.createBlinkIdScanningSession({});
+    console.log("creating new session");
+
+    const session = await blinkIdCore.createBlinkIdScanningSession({
+      scanningSettings: {
+        // scanPassportDataPageOnly: false,
+      },
+    });
 
     // we create the camera manager
     const cameraManager = new CameraManager();
     //
-    // await cameraManager.setResolution("720p");
 
     // we create the UX manager
     const uxManager = new BlinkIdUxManager(cameraManager, session);
+    uxManager.setTimeoutDuration(2000000);
 
     setBlinkIdUxManager(uxManager);
 
     // this creates the UI and attaches it to the DOM
-    const cameraUi = await createCameraManagerUi(cameraManager, targetNode);
+    const cameraUi = await createCameraManagerUi(cameraManager, targetNode, {
+      showMirrorCameraButton: true,
+    });
 
     cameraUi.addOnDismountCallback(() => {
       void blinkIdCore.terminate();
@@ -85,6 +95,10 @@ export const App: Component = () => {
       setResult(result);
       cameraUi.dismount();
     });
+
+    // uxManager.addOnFrameProcessCallback(() => {
+    //   console.log(uxManager.rawUiStateKey);
+    // });
 
     // We wait until the video starts playing before we create the feedback UI
     // and start the frame capture. This also allows for the user to retry granting
@@ -115,7 +129,13 @@ export const App: Component = () => {
       },
     );
 
-    await cameraManager.startCameraStream();
+    await cameraManager.startCameraStream({
+      preferredCamera: (cameras) => {
+        return cameras.find((camera) =>
+          camera.name.toLowerCase().includes("obs"),
+        );
+      },
+    });
   }
 
   onMount(() => {

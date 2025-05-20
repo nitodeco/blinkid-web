@@ -60,10 +60,14 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
   const mockScanningSession: Partial<WorkerScanningSession> & {
     process: ReturnType<typeof vi.fn>;
     getSettings: ReturnType<typeof vi.fn>;
+    showDemoOverlay: ReturnType<typeof vi.fn>;
+    showProductionOverlay: ReturnType<typeof vi.fn>;
     getResult: ReturnType<typeof vi.fn>;
   } = {
     process: vi.fn(),
     getSettings: vi.fn().mockResolvedValue({ scanningSettings: {} }),
+    showDemoOverlay: vi.fn().mockResolvedValue(false),
+    showProductionOverlay: vi.fn().mockResolvedValue(false),
     getResult: vi.fn(),
   };
 
@@ -89,7 +93,7 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
     manager.reset();
   });
 
-  test("should mark document as unsupported when filter returns false", async () => {
+  test("should call document filtered callback when filter returns false", async () => {
     const mockDocumentClassInfo: DocumentClassInfo = {
       country: "usa",
       type: "dl",
@@ -100,6 +104,11 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
       mockDocumentClassInfo,
     );
     mockScanningSession.process.mockResolvedValue(mockProcessResult);
+
+    // Add a spy for the document filtered callback
+    const documentFilteredSpy = vi.fn();
+    const cleanupFilteredCallback =
+      manager.addOnDocumentFilteredCallback(documentFilteredSpy);
 
     // Add filter that rejects USA documents
     const filterCleanup = manager.addDocumentClassFilter((docInfo) => {
@@ -113,13 +122,14 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
       colorSpace: "srgb",
     });
 
-    expect(mockProcessResult.inputImageAnalysisResult?.processingStatus).toBe(
-      "unsupported-document",
-    );
+    // Verify callback was invoked with the document class info
+    expect(documentFilteredSpy).toHaveBeenCalledWith(mockDocumentClassInfo);
+
+    cleanupFilteredCallback();
     filterCleanup();
   });
 
-  test("should not mark document as unsupported when filter returns true", async () => {
+  test("should not call document filtered callback when filter returns true", async () => {
     const mockDocumentClassInfo: DocumentClassInfo = {
       country: "usa",
       type: "dl",
@@ -131,7 +141,12 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
     );
     mockScanningSession.process.mockResolvedValue(mockProcessResult);
 
-    // Add filter that accepts USA documents
+    // Add a spy for the document filtered callback
+    const documentFilteredSpy = vi.fn();
+    const cleanupFilteredCallback =
+      manager.addOnDocumentFilteredCallback(documentFilteredSpy);
+
+    // Add filter that rejects USA documents
     const filterCleanup = manager.addDocumentClassFilter((docInfo) => {
       return docInfo.country === "usa";
     });
@@ -143,9 +158,10 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
       colorSpace: "srgb",
     });
 
-    expect(mockProcessResult.inputImageAnalysisResult?.processingStatus).toBe(
-      "success",
-    );
+    // Verify callback was invoked with the document class info
+    expect(documentFilteredSpy).not.toHaveBeenCalledWith(mockDocumentClassInfo);
+
+    cleanupFilteredCallback();
     filterCleanup();
   });
 
@@ -224,19 +240,23 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
     );
   });
 
-  test("should remove filter when cleanup function is called", async () => {
+  test("should remove filter and not invoke callback when cleanup function is called", async () => {
     const mockDocumentClassInfo: DocumentClassInfo = {
       country: "usa",
       type: "dl",
     };
 
+    // Add a spy for the document filtered callback
+    const documentFilteredSpy = vi.fn();
+    const cleanupFilteredCallback =
+      manager.addOnDocumentFilteredCallback(documentFilteredSpy);
+
+    // First run with active filter that would filter document
     const mockProcessResult = createMockProcessResult(
       "success",
       mockDocumentClassInfo,
     );
-
-    // First run with active filter that would mark as unsupported
-    mockScanningSession.process.mockResolvedValue({ ...mockProcessResult });
+    mockScanningSession.process.mockResolvedValue(mockProcessResult);
     const filterCleanup = manager.addDocumentClassFilter(() => false);
 
     await frameCaptureCallback({
@@ -246,18 +266,13 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
       colorSpace: "srgb",
     });
 
-    expect(mockProcessResult.inputImageAnalysisResult?.processingStatus).toBe(
-      "unsupported-document",
-    );
+    expect(documentFilteredSpy).toHaveBeenCalledTimes(1);
+
+    // Reset spy
+    documentFilteredSpy.mockClear();
 
     // Remove the filter and run again
     filterCleanup();
-
-    const secondMockProcessResult = createMockProcessResult(
-      "success",
-      mockDocumentClassInfo,
-    );
-    mockScanningSession.process.mockResolvedValue(secondMockProcessResult);
 
     await frameCaptureCallback({
       data: new Uint8ClampedArray(0),
@@ -266,10 +281,10 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
       colorSpace: "srgb",
     });
 
-    // Should not be marked as unsupported now
-    expect(
-      secondMockProcessResult.inputImageAnalysisResult?.processingStatus,
-    ).toBe("success");
+    // Should not invoke callback when filter is removed
+    expect(documentFilteredSpy).not.toHaveBeenCalled();
+
+    cleanupFilteredCallback();
   });
 
   test("should use the most recently added filter", async () => {
@@ -322,14 +337,19 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
     // Add filter that rejects USA documents
     const filterCleanup = manager.addDocumentClassFilter(() => false);
 
-    // Mock feedbackStabilizer to immediately return UNSUPPORTED_DOCUMENT state
-    const mockUnsupportedState = {
-      key: "UNSUPPORTED_DOCUMENT",
+    // Add a spy for the document filtered callback
+    const documentFilteredSpy = vi.fn();
+    const cleanupFilteredCallback =
+      manager.addOnDocumentFilteredCallback(documentFilteredSpy);
+
+    // Mock feedbackStabilizer to immediately return FLIP_CARD state
+    const mockSideCaptured = {
+      key: "FLIP_CARD",
       minDuration: 0,
     };
     const feedbackStabilizerSpy = vi
       .spyOn(manager.feedbackStabilizer, "getNewUiState")
-      .mockReturnValue(mockUnsupportedState as never);
+      .mockReturnValue(mockSideCaptured as never);
 
     // Track results
     const resultsReceived: BlinkIdScanningResult[] = [];
@@ -344,6 +364,9 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
       colorSpace: "srgb",
     });
 
+    // Verify document filtered callback was called
+    expect(documentFilteredSpy).toHaveBeenCalledWith(mockDocumentClassInfo);
+
     // Verify camera was stopped
     expect(mockCameraManager.stopFrameCapture).toHaveBeenCalled();
 
@@ -352,6 +375,7 @@ describe("BlinkIdUxManager - Document Class Filter", () => {
     expect(mockScanningSession.getResult).not.toHaveBeenCalled();
 
     cleanupResultListener();
+    cleanupFilteredCallback();
     filterCleanup();
     feedbackStabilizerSpy.mockRestore();
   });

@@ -18,6 +18,7 @@ export type BlinkIdUiStore = {
   cameraManagerComponent: CameraManagerComponent;
   // TODO: should this be part of `BlinkIdUxManager`?
   errorState?: BlinkIdProcessingError;
+  documentFiltered: boolean;
   showOnboardingGuide?: boolean;
   showHelpTooltipTimeout?: number;
   showHelpModal?: boolean;

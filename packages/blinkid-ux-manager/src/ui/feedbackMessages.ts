@@ -10,13 +10,26 @@ export const feedbackMessages: Partial<
 > = {
   SENSING_FRONT: "scan_the_front_side",
   SENSING_BACK: "scan_the_back_side",
-  SIDE_CAPTURED: "flip_to_back_side",
+  FLIP_CARD: "flip_to_back_side",
   WRONG_SIDE: "flip_document",
   SCAN_BARCODE: "scan_the_barcode",
+  // passport
+  SENSING_DATA_PAGE: "scan_data_page",
+  SENSING_TOP_PAGE: "scan_top_page",
+  SENSING_LEFT_PAGE: "scan_left_page",
+  SENSING_RIGHT_PAGE: "scan_right_page",
+  MOVE_TOP: "move_top",
+  MOVE_LEFT: "move_left",
+  MOVE_RIGHT: "move_right",
+  WRONG_TOP_PAGE: "wrong_top",
+  WRONG_LEFT_PAGE: "wrong_left",
+  WRONG_RIGHT_PAGE: "wrong_right",
   // occlusion
   BLUR_DETECTED: "blur_detected",
   GLARE_DETECTED: "glare_detected",
   OCCLUDED: "occluded",
+  // image
+  FACE_PHOTO_OCCLUDED: "face_photo_not_fully_visible",
   // framing
   DOCUMENT_FRAMING_CAMERA_TOO_CLOSE: "move_farther",
   DOCUMENT_FRAMING_CAMERA_TOO_FAR: "move_closer",

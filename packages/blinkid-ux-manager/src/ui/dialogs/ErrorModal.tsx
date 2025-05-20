@@ -45,7 +45,7 @@ export const ErrorModal: Component<ErrorModalProps> = (props) => {
       onPrimaryClick={() => void handlePrimaryClick()}
       onSecondaryClick={() => dismountCameraManagerUi()}
       primaryButtonText={t.alert_retry_btn}
-      secondaryButtonText={t.alert_retry_btn}
+      secondaryButtonText={t.alert_cancel_btn}
     />
   );
 };
