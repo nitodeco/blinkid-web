@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-# 7.2.1
+# v7.2.1
 
 ## Hotfix Release
 
@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 - Fixed an issue with frame quality estimation.
 
-## 7.2.0
+## v7.2.0
 
 ## What's new
 
