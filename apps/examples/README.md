@@ -34,7 +34,7 @@ pnpm build:dev
 
 ### 3. Set up the License Key
 
-Most of the example applications require a license key to run. You can obtain a free trial license key by registering on the [Microblink Developer Hub](https://portal.microblink.com/signin).
+Most of the example applications require a license key to run. You can obtain a free trial license key by registering on the [Microblink Developer Hub](https://portal.microblink.com/signin](https://developer.microblink.com/license/new).
 
 After obtaining the license key, create a `.env.local` file in the root of the specific example application you want to run (e.g., `apps/examples/blinkid-simple/.env.local`) and add the following line:
 
